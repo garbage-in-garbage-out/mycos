@@ -1,0 +1,50 @@
+{
+  "name": "parent_with_gate",
+  "description": "Parent chunk with gate bit for nesting tests",
+  "initial_state": {
+    "inputs": [0],
+    "outputs": [0],
+    "internals": [0, 0]
+  },
+  "test_cases": [
+    {
+      "description": "Input enables gate, which enables logic, which enables output",
+      "input_changes": {"inputs": [1]},
+      "expected_ticks": [
+        {
+          "tick": 1,
+          "state": {
+            "inputs": [1],
+            "outputs": [0],
+            "internals": [1, 0]
+          },
+          "changes": {
+            "internals": [1, null]
+          }
+        },
+        {
+          "tick": 2,
+          "state": {
+            "inputs": [1],
+            "outputs": [0],
+            "internals": [1, 1]
+          },
+          "changes": {
+            "internals": [null, 1]
+          }
+        },
+        {
+          "tick": 3,
+          "state": {
+            "inputs": [1],
+            "outputs": [1],
+            "internals": [1, 1]
+          },
+          "changes": {
+            "outputs": [1]
+          }
+        }
+      ]
+    }
+  ]
+}

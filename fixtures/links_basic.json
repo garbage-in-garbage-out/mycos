@@ -1,0 +1,23 @@
+{
+  "name": "links_basic",
+  "description": "Basic inter-chunk linking test",
+  "chunks": {
+    "A": {
+      "outputs": [0]
+    },
+    "B": {
+      "inputs": [0]
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Output from chunk A should propagate to input of chunk B",
+      "chunk_changes": {
+        "A": {"outputs": [1]}
+      },
+      "expected_result": {
+        "B": {"inputs": [1]}
+      }
+    }
+  ]
+}

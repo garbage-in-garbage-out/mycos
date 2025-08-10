@@ -1,0 +1,26 @@
+{
+  "name": "noop",
+  "description": "Valid header with no connections - should do nothing",
+  "initial_state": {
+    "inputs": [0, 0],
+    "outputs": [0, 0],
+    "internals": []
+  },
+  "test_cases": [
+    {
+      "description": "Any input changes should have no effect",
+      "input_changes": {"inputs": [1, 1]},
+      "expected_ticks": [
+        {
+          "tick": 1,
+          "state": {
+            "inputs": [1, 1],
+            "outputs": [0, 0],
+            "internals": []
+          },
+          "changes": {}
+        }
+      ]
+    }
+  ]
+}
