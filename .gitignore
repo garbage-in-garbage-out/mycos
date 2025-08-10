@@ -1,0 +1,10 @@
+# Rust
+/target
+
+# Node
+node_modules/
+web/node_modules/
+web/dist/
+
+# Misc
+.DS_Store
