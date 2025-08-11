@@ -1,0 +1,11 @@
+---
+source: engine/src/policy.rs
+assertion_line: 137
+expression: res
+---
+{
+  "final_state": [
+    0
+  ],
+  "period": 3
+}

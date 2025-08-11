@@ -2,6 +2,7 @@ pub mod chunk;
 pub mod csr;
 pub mod layout;
 pub mod link;
+pub mod policy;
 pub mod scc;
 
 #[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
@@ -16,6 +17,9 @@ pub use layout::{
 pub use link::{
     build_link_csr, compute_base_offsets, parse_links, validate_links, ChunkOffsets, Link,
     LinkError,
+};
+pub use policy::{
+    clamp_commutative, freeze_last_stable, parity_quench, CycleDetector, ExecutionResult, Policy,
 };
 pub use scc::{build_internal_graph, scc_ids_and_topo_levels};
 
