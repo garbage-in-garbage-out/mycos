@@ -57,7 +57,7 @@ impl TryFrom<u8> for Action {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Connection {
     pub from_section: Section,
     pub to_section: Section,
@@ -68,7 +68,7 @@ pub struct Connection {
     pub order_tag: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MycosChunk {
     pub input_bits: Vec<u8>,
     pub output_bits: Vec<u8>,
