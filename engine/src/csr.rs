@@ -109,15 +109,27 @@ pub fn build_csr(chunk: &MycosChunk) -> CSR {
     for i in 0..src_total {
         let start = offs_on[i] as usize;
         let end = offs_on[i + 1] as usize;
-        effects[start..end].sort_by_key(|e| e.to_word);
+        effects[start..end].sort_by(|a, b| {
+            a.to_word
+                .cmp(&b.to_word)
+                .then(a.order_tag.cmp(&b.order_tag))
+        });
 
         let start = offs_off[i] as usize;
         let end = offs_off[i + 1] as usize;
-        effects[start..end].sort_by_key(|e| e.to_word);
+        effects[start..end].sort_by(|a, b| {
+            a.to_word
+                .cmp(&b.to_word)
+                .then(a.order_tag.cmp(&b.order_tag))
+        });
 
         let start = offs_tog[i] as usize;
         let end = offs_tog[i + 1] as usize;
-        effects[start..end].sort_by_key(|e| e.to_word);
+        effects[start..end].sort_by(|a, b| {
+            a.to_word
+                .cmp(&b.to_word)
+                .then(a.order_tag.cmp(&b.order_tag))
+        });
     }
 
     CSR {
@@ -131,7 +143,9 @@ pub fn build_csr(chunk: &MycosChunk) -> CSR {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chunk::{parse_chunk, validate_chunk, Trigger};
+    use crate::chunk::{
+        parse_chunk, validate_chunk, Action, Connection, MycosChunk, Section, Trigger,
+    };
     use std::fs;
     use std::path::PathBuf;
 
@@ -201,6 +215,87 @@ mod tests {
                         assert!(eff.to_bit < chunk.output_count);
                     }
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn effects_sorted_by_to_word_and_order_tag() {
+        let chunk = MycosChunk {
+            input_bits: vec![0],
+            output_bits: vec![],
+            internal_bits: vec![0; 12],
+            input_count: 1,
+            output_count: 0,
+            internal_count: 96,
+            connections: vec![
+                Connection {
+                    from_section: Section::Input,
+                    to_section: Section::Internal,
+                    trigger: Trigger::On,
+                    action: Action::Enable,
+                    from_index: 0,
+                    to_index: 5,
+                    order_tag: 0,
+                },
+                Connection {
+                    from_section: Section::Input,
+                    to_section: Section::Internal,
+                    trigger: Trigger::On,
+                    action: Action::Enable,
+                    from_index: 0,
+                    to_index: 1,
+                    order_tag: 1,
+                },
+                Connection {
+                    from_section: Section::Input,
+                    to_section: Section::Internal,
+                    trigger: Trigger::On,
+                    action: Action::Enable,
+                    from_index: 0,
+                    to_index: 33,
+                    order_tag: 2,
+                },
+                Connection {
+                    from_section: Section::Input,
+                    to_section: Section::Internal,
+                    trigger: Trigger::On,
+                    action: Action::Enable,
+                    from_index: 0,
+                    to_index: 65,
+                    order_tag: 3,
+                },
+                Connection {
+                    from_section: Section::Input,
+                    to_section: Section::Internal,
+                    trigger: Trigger::On,
+                    action: Action::Enable,
+                    from_index: 0,
+                    to_index: 40,
+                    order_tag: 4,
+                },
+                Connection {
+                    from_section: Section::Input,
+                    to_section: Section::Internal,
+                    trigger: Trigger::On,
+                    action: Action::Enable,
+                    from_index: 0,
+                    to_index: 41,
+                    order_tag: 5,
+                },
+            ],
+            name: None,
+            note: None,
+            build_hash: None,
+        };
+        let csr = build_csr(&chunk);
+        let start = csr.offs_on[0] as usize;
+        let end = csr.offs_on[1] as usize;
+        let slice = &csr.effects[start..end];
+        assert!(slice.windows(2).all(|w| w[0].to_word <= w[1].to_word));
+        for w in slice.windows(2) {
+            if w[0].to_word == w[1].to_word {
+                assert!(w[0].order_tag <= w[1].order_tag);
             }
         }
     }
