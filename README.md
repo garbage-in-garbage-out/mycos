@@ -140,7 +140,8 @@ cd engine
 cargo build --target wasm32-unknown-unknown --release
 
 # Generate bindings
-wasm-bindgen --target web --out-dir ../web/pkg target/wasm32-unknown-unknown/release/mycos.wasm
+wasm-bindgen --target web --out-dir pkg target/wasm32-unknown-unknown/release/engine.wasm
+cp -r pkg ../web/engine/pkg
 
 # Start web UI
 cd ../web
