@@ -14,6 +14,7 @@ wgpu = { version = "0.19", default-features = false, features = ["webgpu"], opti
 petgraph = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
+bitvec = { version = "1.0", features = ["serde"] }
 
 [features]
 default = []

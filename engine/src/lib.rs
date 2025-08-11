@@ -2,6 +2,7 @@ pub mod chunk;
 pub mod cpu_ref;
 pub mod csr;
 pub mod embed;
+pub mod genome;
 pub mod layout;
 pub mod link;
 pub mod policy;
@@ -16,6 +17,7 @@ pub use chunk::{
 };
 pub use csr::{build_csr, Effect, CSR};
 pub use embed::{execute_gated_alias, execute_gated_copy, parse_embeds, Embed, EmbedError, IoMode};
+pub use genome::{ChunkGene, ConnGene, Genome, GenomeMeta, LinkGene, ValidationError};
 pub use layout::{
     bit_to_word, clr_bit, connection_table_offset, section_offsets, set_bit, xor_bit, HEADER_BYTES,
 };
