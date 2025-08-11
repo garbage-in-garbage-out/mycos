@@ -16,6 +16,38 @@ pub fn xor_bit(word: &mut u32, mask: u32) {
     *word ^= mask;
 }
 
+pub const HEADER_BYTES: usize = 32;
+
+/// Compute byte offsets of each bit section (Inputs, Outputs, Internals)
+/// according to the binary layout specification.
+///
+/// Offsets are from the start of the chunk binary. Inputs begin immediately
+/// after the 32-byte header; subsequent sections follow sequentially using
+/// byte counts rounded up to the next byte.
+pub fn section_offsets(ni: u32, no: u32, nn: u32) -> (usize, usize, usize) {
+    let input_bytes = (ni as usize).div_ceil(8);
+    let output_bytes = (no as usize).div_ceil(8);
+    let _internal_bytes = (nn as usize).div_ceil(8); // for symmetry, may be useful to callers
+
+    let input = HEADER_BYTES;
+    let output = input + input_bytes;
+    let internal = output + output_bytes;
+    (input, output, internal)
+}
+
+/// Starting offset of the connection table in bytes.
+///
+/// This follows immediately after the bit sections plus padding to the next
+/// 4-byte boundary as required by the spec.
+pub fn connection_table_offset(ni: u32, no: u32, nn: u32) -> usize {
+    let input_bytes = (ni as usize).div_ceil(8);
+    let output_bytes = (no as usize).div_ceil(8);
+    let internal_bytes = (nn as usize).div_ceil(8);
+    let bits_total = input_bytes + output_bytes + internal_bytes;
+    let pad = (4 - (bits_total % 4)) % 4;
+    HEADER_BYTES + bits_total + pad
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -48,5 +80,25 @@ mod tests {
 
         clr_bit(&mut words[w31 as usize], m31);
         assert_eq!(words[0], 0);
+    }
+
+    #[test]
+    fn section_offset_calculation() {
+        // Ni=1, No=1, Nn=1 -> each consumes 1 byte
+        let (i, o, n) = section_offsets(1, 1, 1);
+        assert_eq!((i, o, n), (32, 33, 34));
+
+        // Ni=9 -> 2 bytes, No=17 -> 3 bytes, Nn=0
+        let (i2, o2, n2) = section_offsets(9, 17, 0);
+        assert_eq!((i2, o2, n2), (32, 34, 37));
+
+        // Ni=0, No=0, Nn=0 -> all start after header
+        let (i3, o3, n3) = section_offsets(0, 0, 0);
+        assert_eq!((i3, o3, n3), (32, 32, 32));
+
+        // Connection table offset for Ni=1, No=1, Nn=1
+        let conn_off = connection_table_offset(1, 1, 1);
+        // Total bits bytes = 3 -> pad = 1 -> 32 + 3 + 1 = 36
+        assert_eq!(conn_off, 36);
     }
 }
