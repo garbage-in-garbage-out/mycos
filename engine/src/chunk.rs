@@ -158,9 +158,9 @@ pub fn parse_chunk(bytes: &[u8]) -> Result<MycosChunk, Error> {
     let connection_count = read_u32(bytes, &mut cursor)? as usize;
     let _reserved = read_u32(bytes, &mut cursor)?;
 
-    let input_bytes = ((input_count + 7) / 8) as usize;
-    let output_bytes = ((output_count + 7) / 8) as usize;
-    let internal_bytes = ((internal_count + 7) / 8) as usize;
+    let input_bytes = input_count.div_ceil(8) as usize;
+    let output_bytes = output_count.div_ceil(8) as usize;
+    let internal_bytes = internal_count.div_ceil(8) as usize;
     let bits_total = input_bytes + output_bytes + internal_bytes;
     if cursor + bits_total > bytes.len() {
         return Err(Error::UnexpectedEof);
