@@ -29,7 +29,9 @@ let handle: MycosHandle | null = null;
 
 async function ensureWasm(): Promise<WasmModule> {
   if (!wasm) {
-    wasm = (await import('../../engine/pkg')) as unknown as WasmModule;
+    // The wasm-bindgen output is copied into `web/engine/pkg` during the build
+    // step so it can be statically imported by Vite.
+    wasm = (await import('../engine/pkg/engine.js')) as unknown as WasmModule;
     await wasm.default();
   }
   return wasm;

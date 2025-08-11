@@ -5,6 +5,8 @@
 node_modules/
 web/node_modules/
 web/dist/
+web/engine/pkg/
+web/public/fixtures/
 
 # Misc
 .DS_Store
