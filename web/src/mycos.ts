@@ -29,13 +29,9 @@ let handle: MycosHandle | null = null;
 
 async function ensureWasm(): Promise<WasmModule> {
   if (!wasm) {
-    // Vite cannot resolve modules outside the project root during build. The
-    // `/* @vite-ignore */` comment combined with using a variable specifier
-    // prevents Vite/Rollup from trying to statically analyze the import, so the
-    // generated WASM package under `engine/pkg` can be loaded at runtime without
-    // bundler resolution.
-    const pkgPath = '../../engine/pkg';
-    wasm = (await import(/* @vite-ignore */ pkgPath)) as unknown as WasmModule;
+    // The wasm-bindgen output is copied into `web/engine/pkg` during the build
+    // step so it can be statically imported by Vite.
+    wasm = (await import('../engine/pkg/engine.js')) as unknown as WasmModule;
     await wasm.default();
   }
   return wasm;
