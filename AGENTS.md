@@ -152,6 +152,7 @@ Agents implementing gates must:
 - **Code Style:** Follow Rust 2021 idioms; TS code must be typed and lint-clean.
 - **Determinism:** All GPU kernels must yield identical results across runs for same input.
 - **Testing:** Maintain CPU reference executor (in Rust) for small cases to verify GPU output.
+- **Pre-commit checks:** Run `cargo build`, `cargo test`, and `cargo clippy` and ensure they pass before committing code changes.
 - **Versioning:** If binary format changes, bump `Version` in header and keep reader backward-compat.
 - **Error Handling:** Fail-fast on invalid binaries or illegal connections.
 
