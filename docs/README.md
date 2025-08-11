@@ -1,3 +1,5 @@
 # Mycos Documentation
 
-See [spec.md](spec.md) for the current technical specification.
+* [API reference](api.md)
+* [WGSL kernels](kernels.md)
+* [Technical specification](spec.md)

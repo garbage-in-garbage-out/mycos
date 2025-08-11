@@ -8,6 +8,14 @@ The name comes from *mykos* — Greek for “fungus” — evoking the mycelial 
 
 ---
 
+## Documentation
+
+- [API reference](docs/api.md)
+- [WGSL kernels](docs/kernels.md)
+- [Technical specification](docs/spec.md)
+
+---
+
 ## Features
 
 - **Formal binary chunk format** with Inputs, Outputs, Internals, and a fixed-size connection table.
