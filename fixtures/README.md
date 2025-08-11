@@ -43,13 +43,6 @@ All binary files follow the Mycos v1 binary specification:
 - Internal[0] acts as gate, Internal[1] as logic
 - Expected behavior: Input enables gate, gate enables logic, logic enables output
 
-## Link Files (.links)
-
-### links_basic.links
-- JSON format link table
-- Defines A.output[0] → B.input[0] connection
-- Tests inter-chunk wiring
-
 ## JSON Expectation Files
 
 Each .myc file has a corresponding .json file with expected execution traces:
