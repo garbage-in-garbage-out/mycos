@@ -74,4 +74,3 @@ export function getOutputs(chunkId: number, out: Uint32Array): void {
 export function setPolicy(mode: 'freeze' | 'clamp' | 'parity'): void {
   ensureHandle().set_policy(mode);
 }
-
