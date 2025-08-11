@@ -1,4 +1,5 @@
 pub mod chunk;
+pub mod cpu_ref;
 pub mod csr;
 pub mod layout;
 pub mod link;
