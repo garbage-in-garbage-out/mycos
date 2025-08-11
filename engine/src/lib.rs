@@ -6,6 +6,8 @@ pub mod policy;
 pub mod scc;
 
 #[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
+pub mod api;
+#[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 pub mod gpu;
 pub use chunk::{
     parse_chunk, validate_chunk, Action, Connection, Error, MycosChunk, Section, Trigger,
