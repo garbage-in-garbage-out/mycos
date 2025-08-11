@@ -1,5 +1,8 @@
 use crate::chunk::{MycosChunk, Section};
+use petgraph::algo::kosaraju_scc;
 use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::EdgeRef;
+use std::collections::{HashSet, VecDeque};
 
 pub fn build_internal_graph(chunk: &MycosChunk) -> DiGraph<(), ()> {
     let mut graph = DiGraph::<(), ()>::new();
@@ -18,6 +21,57 @@ pub fn build_internal_graph(chunk: &MycosChunk) -> DiGraph<(), ()> {
     }
 
     graph
+}
+
+pub fn scc_ids_and_topo_levels(chunk: &MycosChunk) -> (Vec<usize>, Vec<usize>) {
+    let graph = build_internal_graph(chunk);
+    let sccs = kosaraju_scc(&graph);
+
+    let mut scc_ids = vec![0usize; graph.node_count()];
+    for (id, component) in sccs.iter().enumerate() {
+        for node in component {
+            scc_ids[node.index()] = id;
+        }
+    }
+
+    let scc_count = sccs.len();
+    let mut dag: Vec<HashSet<usize>> = vec![HashSet::new(); scc_count];
+    for edge in graph.edge_references() {
+        let u = scc_ids[edge.source().index()];
+        let v = scc_ids[edge.target().index()];
+        if u != v {
+            dag[u].insert(v);
+        }
+    }
+
+    let mut indegree = vec![0usize; scc_count];
+    for edges in &dag {
+        for &v in edges {
+            indegree[v] += 1;
+        }
+    }
+
+    let mut levels = vec![0usize; scc_count];
+    let mut queue = VecDeque::new();
+    for (i, &deg) in indegree.iter().enumerate() {
+        if deg == 0 {
+            queue.push_back(i);
+        }
+    }
+
+    while let Some(u) = queue.pop_front() {
+        for &v in dag[u].iter() {
+            if levels[v] < levels[u] + 1 {
+                levels[v] = levels[u] + 1;
+            }
+            indegree[v] -= 1;
+            if indegree[v] == 0 {
+                queue.push_back(v);
+            }
+        }
+    }
+
+    (scc_ids, levels)
 }
 
 #[cfg(test)]
@@ -55,5 +109,16 @@ mod tests {
                 assert_eq!(graph.edge_count(), expected_edges);
             }
         }
+    }
+
+    #[test]
+    fn oscillator_two_cycle_scc() {
+        let path = fixtures().join("oscillator_2cycle.myc");
+        let data = fs::read(path).unwrap();
+        let chunk = parse_chunk(&data).unwrap();
+        validate_chunk(&chunk).unwrap();
+        let (scc_ids, levels) = scc_ids_and_topo_levels(&chunk);
+        assert_eq!(scc_ids, vec![0, 0]);
+        assert_eq!(levels, vec![0]);
     }
 }
