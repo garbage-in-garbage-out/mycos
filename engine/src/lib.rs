@@ -4,6 +4,8 @@ pub mod layout;
 pub mod link;
 pub mod scc;
 
+#[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
+pub mod gpu;
 pub use chunk::{
     parse_chunk, validate_chunk, Action, Connection, Error, MycosChunk, Section, Trigger,
 };
@@ -16,3 +18,6 @@ pub use link::{
     LinkError,
 };
 pub use scc::{build_internal_graph, scc_ids_and_topo_levels};
+
+#[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
+pub use gpu::device::init_device;
