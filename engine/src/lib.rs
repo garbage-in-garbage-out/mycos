@@ -10,4 +10,4 @@ pub use csr::{build_csr, Effect, CSR};
 pub use layout::{
     bit_to_word, clr_bit, connection_table_offset, section_offsets, set_bit, xor_bit, HEADER_BYTES,
 };
-pub use scc::build_internal_graph;
+pub use scc::{build_internal_graph, scc_ids_and_topo_levels};
