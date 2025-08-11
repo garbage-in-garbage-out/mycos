@@ -77,6 +77,9 @@ pub struct MycosChunk {
     pub output_count: u32,
     pub internal_count: u32,
     pub connections: Vec<Connection>,
+    pub name: Option<String>,
+    pub note: Option<String>,
+    pub build_hash: Option<Vec<u8>>,
 }
 
 #[derive(Debug)]
@@ -90,6 +93,7 @@ pub enum Error {
     InvalidConnectionEdge { from: Section, to: Section },
     FromIndexOutOfRange { section: Section, index: u32 },
     ToIndexOutOfRange { section: Section, index: u32 },
+    InvalidUtf8,
 }
 
 impl std::fmt::Display for Error {
@@ -110,6 +114,7 @@ impl std::fmt::Display for Error {
             Error::ToIndexOutOfRange { section, index } => {
                 write!(f, "to index {index} out of range for {:?}", section)
             }
+            Error::InvalidUtf8 => write!(f, "invalid utf8"),
         }
     }
 }
@@ -137,6 +142,14 @@ fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, Error> {
     ]);
     *cursor += 4;
     Ok(v)
+}
+
+fn write_u16(out: &mut Vec<u8>, v: u16) {
+    out.extend_from_slice(&v.to_le_bytes());
+}
+
+fn write_u32(out: &mut Vec<u8>, v: u32) {
+    out.extend_from_slice(&v.to_le_bytes());
 }
 
 pub fn parse_chunk(bytes: &[u8]) -> Result<MycosChunk, Error> {
@@ -216,6 +229,41 @@ pub fn parse_chunk(bytes: &[u8]) -> Result<MycosChunk, Error> {
         cursor += 16;
     }
 
+    let mut name = None;
+    let mut note = None;
+    let mut build_hash = None;
+    while cursor < bytes.len() {
+        if cursor + 4 > bytes.len() {
+            return Err(Error::UnexpectedEof);
+        }
+        let t = read_u16(bytes, &mut cursor)?;
+        let len = read_u16(bytes, &mut cursor)? as usize;
+        if cursor + len > bytes.len() {
+            return Err(Error::UnexpectedEof);
+        }
+        let value = bytes[cursor..cursor + len].to_vec();
+        cursor += len;
+        let pad = (4 - (len % 4)) % 4;
+        if cursor + pad > bytes.len() {
+            return Err(Error::UnexpectedEof);
+        }
+        cursor += pad;
+        match t {
+            0x0001 => {
+                let s = String::from_utf8(value).map_err(|_| Error::InvalidUtf8)?;
+                name = Some(s);
+            }
+            0x0002 => {
+                let s = String::from_utf8(value).map_err(|_| Error::InvalidUtf8)?;
+                note = Some(s);
+            }
+            0x0003 => {
+                build_hash = Some(value);
+            }
+            _ => {}
+        }
+    }
+
     Ok(MycosChunk {
         input_bits,
         output_bits,
@@ -224,7 +272,59 @@ pub fn parse_chunk(bytes: &[u8]) -> Result<MycosChunk, Error> {
         output_count,
         internal_count,
         connections,
+        name,
+        note,
+        build_hash,
     })
+}
+
+pub fn encode_chunk(chunk: &MycosChunk) -> Vec<u8> {
+    let mut out = Vec::new();
+    out.extend_from_slice(b"MYCOSCH0");
+    write_u16(&mut out, 1); // version
+    write_u16(&mut out, 0); // flags
+    write_u32(&mut out, chunk.input_count);
+    write_u32(&mut out, chunk.output_count);
+    write_u32(&mut out, chunk.internal_count);
+    write_u32(&mut out, chunk.connections.len() as u32);
+    write_u32(&mut out, 0); // reserved
+
+    out.extend_from_slice(&chunk.input_bits);
+    out.extend_from_slice(&chunk.output_bits);
+    out.extend_from_slice(&chunk.internal_bits);
+    let bits_total = chunk.input_bits.len() + chunk.output_bits.len() + chunk.internal_bits.len();
+    let pad = (4 - (bits_total % 4)) % 4;
+    out.extend(std::iter::repeat_n(0, pad));
+
+    for c in &chunk.connections {
+        out.push(c.from_section as u8);
+        out.push(c.to_section as u8);
+        out.push(c.trigger as u8);
+        out.push(c.action as u8);
+        write_u32(&mut out, c.from_index);
+        write_u32(&mut out, c.to_index);
+        write_u32(&mut out, c.order_tag);
+    }
+
+    if let Some(name) = &chunk.name {
+        encode_tlv(&mut out, 0x0001, name.as_bytes());
+    }
+    if let Some(note) = &chunk.note {
+        encode_tlv(&mut out, 0x0002, note.as_bytes());
+    }
+    if let Some(hash) = &chunk.build_hash {
+        encode_tlv(&mut out, 0x0003, hash);
+    }
+
+    out
+}
+
+fn encode_tlv(out: &mut Vec<u8>, t: u16, value: &[u8]) {
+    write_u16(out, t);
+    write_u16(out, value.len() as u16);
+    out.extend_from_slice(value);
+    let pad = (4 - (value.len() % 4)) % 4;
+    out.extend(std::iter::repeat_n(0, pad));
 }
 
 pub fn validate_chunk(chunk: &MycosChunk) -> Result<(), Error> {
@@ -349,5 +449,26 @@ mod tests {
             validate_chunk(&chunk),
             Err(Error::FromIndexOutOfRange { .. })
         ));
+    }
+
+    #[test]
+    fn tlv_round_trip() {
+        let chunk = MycosChunk {
+            input_bits: vec![0],
+            output_bits: Vec::new(),
+            internal_bits: Vec::new(),
+            input_count: 1,
+            output_count: 0,
+            internal_count: 0,
+            connections: Vec::new(),
+            name: Some("demo".to_string()),
+            note: Some("note".to_string()),
+            build_hash: Some(vec![1, 2, 3, 4]),
+        };
+        let data = encode_chunk(&chunk);
+        let parsed = parse_chunk(&data).unwrap();
+        assert_eq!(parsed.name.as_deref(), Some("demo"));
+        assert_eq!(parsed.note.as_deref(), Some("note"));
+        assert_eq!(parsed.build_hash.as_deref(), Some(&[1, 2, 3, 4][..]));
     }
 }
