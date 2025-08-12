@@ -10,6 +10,8 @@ pub mod link;
 pub mod mutations;
 pub mod policy;
 pub mod scc;
+pub mod scoring;
+pub mod tasks;
 
 #[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 pub mod api;
@@ -22,7 +24,7 @@ pub use crossover::crossover;
 pub use csr::{build_csr, Effect, CSR};
 pub use embed::{execute_gated_alias, execute_gated_copy, parse_embeds, Embed, EmbedError, IoMode};
 pub use genome::{ChunkGene, ConnGene, Genome, GenomeMeta, LinkGene, ValidationError};
-pub use gpu_eval::{evaluate_batch, Episode, EpisodeMetrics, FitnessResult, Task};
+pub use gpu_eval::{evaluate_batch, Episode, EpisodeMetrics, FitnessResult};
 pub use layout::{
     bit_to_word, clr_bit, connection_table_offset, section_offsets, set_bit, xor_bit, HEADER_BYTES,
 };
@@ -35,6 +37,11 @@ pub use policy::{
     clamp_commutative, freeze_last_stable, parity_quench, CycleDetector, ExecutionResult, Policy,
 };
 pub use scc::{build_internal_graph, scc_ids_and_topo_levels};
+pub use scoring::{score, ScoringSpec};
+pub use tasks::{
+    t00_wire_echo, t01_xor_2, t02_sr_latch, t03_pulse_counter, t04_cross_chunk_relay, EpisodeSpec,
+    Io, IoMap, Task,
+};
 
 #[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 pub use gpu::device::init_device;

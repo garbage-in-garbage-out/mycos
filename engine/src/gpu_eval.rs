@@ -1,12 +1,4 @@
-use crate::genome::Genome;
-
-/// Placeholder task description for evaluation.
-///
-/// A real task would include scoring logic and I/O mapping,
-/// but for now it is an empty struct allowing the evaluation
-/// API to compile on all targets.
-#[derive(Clone, Debug, Default)]
-pub struct Task;
+use crate::{genome::Genome, tasks::Task};
 
 /// Inputs for a single episode within a batch evaluation.
 #[derive(Clone, Debug, Default)]
