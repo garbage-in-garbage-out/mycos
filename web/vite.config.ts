@@ -13,7 +13,15 @@ const fixturesDest = resolve(rootDir, 'public/fixtures');
 
 function buildEngine(): void {
   if (!existsSync(enginePkgSrc)) {
-    execSync('wasm-pack build --target web --dev', {
+    const cargoHome =
+      process.env.CARGO_HOME || resolve(process.env.HOME || '', '.cargo');
+    const wasmPackPath = resolve(
+      cargoHome,
+      'bin',
+      process.platform === 'win32' ? 'wasm-pack.exe' : 'wasm-pack'
+    );
+    const wasmPackCmd = existsSync(wasmPackPath) ? wasmPackPath : 'wasm-pack';
+    execSync(`${wasmPackCmd} build --target web --dev`, {
       cwd: engineSrcDir,
       stdio: 'inherit',
     });
