@@ -216,11 +216,13 @@ dependencies = [
  "bitvec",
  "getrandom",
  "insta",
+ "js-sys",
  "petgraph",
  "rand",
  "serde",
  "serde_json",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
  "wgpu",
 ]

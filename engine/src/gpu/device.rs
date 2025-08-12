@@ -28,7 +28,6 @@ pub async fn init_device() -> Result<(wgpu::Device, wgpu::Queue), JsValue> {
         label: Some("mycos-device"),
         required_features: features,
         required_limits: limits,
-        memory_hints: wgpu::MemoryHints::default(),
     };
 
     adapter
