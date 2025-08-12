@@ -43,6 +43,7 @@ function copyAssets(): void {
 }
 
 export default defineConfig({
+  base: '/mycos/',
   build: {
     target: 'esnext',
   },

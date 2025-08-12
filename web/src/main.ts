@@ -50,7 +50,7 @@ let inputsWords = new Uint32Array(0);
 let outputsWords = new Uint32Array(0);
 
 async function loadFixture(name: string): Promise<void> {
-  const url = `/fixtures/${name}.myc`;
+  const url = `${import.meta.env.BASE_URL}fixtures/${name}.myc`;
   const buffer = await fetch(url).then((r) => r.arrayBuffer());
   const header = parseHeader(buffer);
   loadChunks([buffer]);
