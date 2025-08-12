@@ -5,6 +5,7 @@ pub mod embed;
 pub mod genome;
 pub mod layout;
 pub mod link;
+pub mod mutations;
 pub mod policy;
 pub mod scc;
 
@@ -25,6 +26,7 @@ pub use link::{
     build_link_csr, compute_base_offsets, parse_links, validate_links, ChunkOffsets, Link,
     LinkError,
 };
+pub use mutations::mutate;
 pub use policy::{
     clamp_commutative, freeze_last_stable, parity_quench, CycleDetector, ExecutionResult, Policy,
 };

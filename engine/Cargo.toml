@@ -15,6 +15,7 @@ petgraph = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
 bitvec = { version = "1.0", features = ["serde"] }
+rand = "0.8"
 
 [features]
 default = []
