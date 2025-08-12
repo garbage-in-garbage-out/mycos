@@ -42,8 +42,13 @@ impl Metrics {
 }
 
 /// Initialize WebGPU and create a new [`MycosHandle`].
+///
+/// Named `init_engine` instead of `init` to avoid clashing with the
+/// wasm-bindgen generated module initializer which is also called `init`.
+/// The prior name caused the function to be dropped from the JS exports,
+/// leaving the web wrapper unable to obtain a handle at runtime.
 #[wasm_bindgen]
-pub async fn init(_canvas: Option<HtmlCanvasElement>) -> Result<MycosHandle, JsValue> {
+pub async fn init_engine(_canvas: Option<HtmlCanvasElement>) -> Result<MycosHandle, JsValue> {
     // For now the canvas is unused as the engine only performs compute work.
     let (device, queue) = init_device().await?;
     Ok(MycosHandle { device, queue })
