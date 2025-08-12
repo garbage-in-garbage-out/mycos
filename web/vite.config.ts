@@ -42,8 +42,10 @@ function copyAssets(): void {
   }
 }
 
-export default defineConfig({
-  base: '/mycos/',
+const repoBase = process.env.GITHUB_REPOSITORY?.split('/')[1];
+
+export default defineConfig(({ command }) => ({
+  base: command === 'build' && repoBase ? `/${repoBase}/` : '/',
   build: {
     target: 'esnext',
   },
@@ -56,4 +58,4 @@ export default defineConfig({
       },
     },
   ],
-});
+}));
