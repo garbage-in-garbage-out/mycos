@@ -1,3 +1,4 @@
+pub mod checkpoint;
 pub mod chunk;
 pub mod cpu_ref;
 pub mod crossover;
@@ -18,13 +19,14 @@ pub mod tasks;
 pub mod api;
 #[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 pub mod gpu;
+pub use checkpoint::{load, save, Checkpoint};
 pub use chunk::{
     parse_chunk, validate_chunk, Action, Connection, Error, MycosChunk, Section, Trigger,
 };
 pub use crossover::crossover;
 pub use csr::{build_csr, Effect, CSR};
 pub use embed::{execute_gated_alias, execute_gated_copy, parse_embeds, Embed, EmbedError, IoMode};
-pub use evolution::{run_evolution, Checkpoint, EvoConfig};
+pub use evolution::{run_evolution, EvoConfig};
 pub use genome::{ChunkGene, ConnGene, Genome, GenomeMeta, LinkGene, ValidationError};
 pub use gpu_eval::{evaluate_batch, Episode, EpisodeMetrics, FitnessResult};
 pub use layout::{

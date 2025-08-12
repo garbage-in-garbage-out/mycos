@@ -1,10 +1,14 @@
 use std::collections::HashMap;
-use std::path::Path;
 
-use rand::{rngs::StdRng, Rng, SeedableRng};
-use serde::{Deserialize, Serialize};
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha8Rng;
 
-use crate::{crossover, evaluate_batch, gpu_eval::Episode, mutate, Genome, Task};
+use crate::{
+    checkpoint::{save, Checkpoint},
+    crossover, evaluate_batch,
+    gpu_eval::Episode,
+    mutate, Genome, Task,
+};
 
 /// Configuration for the evolution loop.
 ///
@@ -40,12 +44,6 @@ pub struct EvoConfig {
     pub seed: u64,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Checkpoint {
-    pub generation: u32,
-    pub genomes: Vec<Genome>,
-}
-
 #[derive(Clone)]
 struct Individual {
     genome: Genome,
@@ -60,7 +58,7 @@ struct Individual {
 /// sufficient for exercising other components of the engine and can be extended
 /// in future iterations.
 pub fn run_evolution(config: EvoConfig) -> Checkpoint {
-    let mut rng = StdRng::seed_from_u64(config.seed);
+    let mut rng = ChaCha8Rng::seed_from_u64(config.seed);
 
     // --- Population initialisation ----------------------------------------------------------
     let mut population: Vec<Individual> = (0..config.pop_size)
@@ -69,7 +67,7 @@ pub fn run_evolution(config: EvoConfig) -> Checkpoint {
             let seed = rng.gen();
             g.meta.seed = seed;
             // Apply a mutation so the population is not uniform.
-            let mut grng = StdRng::seed_from_u64(seed);
+            let mut grng = ChaCha8Rng::seed_from_u64(seed);
             mutate(&mut g, &mut grng);
             Individual {
                 genome: g,
@@ -145,7 +143,7 @@ pub fn run_evolution(config: EvoConfig) -> Checkpoint {
                 if rng.gen::<f32>() < config.mutation_rate {
                     let seed = rng.gen();
                     child.meta.seed = seed;
-                    let mut grng = StdRng::seed_from_u64(seed);
+                    let mut grng = ChaCha8Rng::seed_from_u64(seed);
                     mutate(&mut child, &mut grng);
                 }
                 next_population.push(Individual {
@@ -162,18 +160,22 @@ pub fn run_evolution(config: EvoConfig) -> Checkpoint {
             let cp = Checkpoint {
                 generation: gen + 1,
                 genomes: population.iter().map(|i| i.genome.clone()).collect(),
+                fitness: population.iter().map(|i| i.fitness).collect(),
+                rng: rng.clone(),
             };
-            let _ = save_checkpoint(&config.checkpoint_path, &cp);
+            let _ = save(&config.checkpoint_path, &cp);
         }
     }
 
     Checkpoint {
         generation: config.generations,
-        genomes: population.into_iter().map(|i| i.genome).collect(),
+        genomes: population.iter().map(|i| i.genome.clone()).collect(),
+        fitness: population.iter().map(|i| i.fitness).collect(),
+        rng,
     }
 }
 
-fn tournament_index(members: &[Individual], k: usize, rng: &mut StdRng) -> usize {
+fn tournament_index(members: &[Individual], k: usize, rng: &mut ChaCha8Rng) -> usize {
     let mut best_idx = rng.gen_range(0..members.len());
     let mut best_fit = members[best_idx].fitness;
     for _ in 1..k {
@@ -192,9 +194,4 @@ fn genome_distance(a: &Genome, b: &Genome) -> f32 {
     let conns_b: usize = b.chunks.iter().map(|c| c.conns.len()).sum();
     let dconns = (conns_a as i32 - conns_b as i32).abs() as f32;
     dc + dconns
-}
-
-fn save_checkpoint(path: &Path, cp: &Checkpoint) -> std::io::Result<()> {
-    let json = serde_json::to_string(cp)?;
-    std::fs::write(path, json)
 }
