@@ -21,7 +21,7 @@ function buildEngine(): void {
       process.platform === 'win32' ? 'wasm-pack.exe' : 'wasm-pack'
     );
     const wasmPackCmd = existsSync(wasmPackPath) ? wasmPackPath : 'wasm-pack';
-    execSync(`${wasmPackCmd} build --target web --dev`, {
+    execSync(`${wasmPackCmd} build --target web --dev -- --features webgpu`, {
       cwd: engineSrcDir,
       stdio: 'inherit',
     });
