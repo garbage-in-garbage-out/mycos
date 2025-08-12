@@ -32,6 +32,12 @@ pub struct Pipelines {
     pub kfinal_finalize: ComputePipeline,
 }
 
+/// Cycle detection result returned from [`tick`].
+pub struct CycleInfo {
+    pub detected: bool,
+    pub period: u32,
+}
+
 /// Execute one tick of the GPU pipeline.
 ///
 /// `max_rounds` caps the number of wavefront rounds that may be executed. The
@@ -49,13 +55,22 @@ pub fn tick(
     bind_group: &BindGroup,
     pipelines: &Pipelines,
     frontier_counts: &Buffer,
+    hash_state: &Buffer,
     max_rounds: u32,
-) {
+) -> CycleInfo {
     const FRONTIER_SIZE: u64 = std::mem::size_of::<[u32; 4]>() as u64;
+    const HASH_STATE_SIZE: u64 = std::mem::size_of::<[u32; 4]>() as u64;
 
     let readback = device.create_buffer(&BufferDescriptor {
         label: Some("frontier-counts-readback"),
         size: FRONTIER_SIZE,
+        usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+
+    let hash_readback = device.create_buffer(&BufferDescriptor {
+        label: Some("hash-state-readback"),
+        size: HASH_STATE_SIZE,
         usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
         mapped_at_creation: false,
     });
@@ -100,15 +115,29 @@ pub fn tick(
             let mut final_encoder = device.create_command_encoder(&CommandEncoderDescriptor {
                 label: Some("Kfinal_finalize"),
             });
-            let mut pass = final_encoder.begin_compute_pass(&ComputePassDescriptor {
-                label: Some("Kfinal_finalize"),
-                ..Default::default()
-            });
-            pass.set_pipeline(&pipelines.kfinal_finalize);
-            pass.set_bind_group(0, bind_group, &[]);
-            pass.dispatch_workgroups(1, 1, 1);
+            {
+                let mut pass = final_encoder.begin_compute_pass(&ComputePassDescriptor {
+                    label: Some("Kfinal_finalize"),
+                    ..Default::default()
+                });
+                pass.set_pipeline(&pipelines.kfinal_finalize);
+                pass.set_bind_group(0, bind_group, &[]);
+                pass.dispatch_workgroups(1, 1, 1);
+            }
+            final_encoder.copy_buffer_to_buffer(hash_state, 0, &hash_readback, 0, HASH_STATE_SIZE);
             queue.submit(Some(final_encoder.finish()));
-            return;
+
+            let slice = hash_readback.slice(..);
+            let (sender, receiver) = mpsc::channel();
+            slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
+            device.poll(Maintain::Wait);
+            receiver.recv().unwrap().unwrap();
+            let data = slice.get_mapped_range();
+            let detected = u32::from_le_bytes(data[4..8].try_into().unwrap()) != 0;
+            let period = u32::from_le_bytes(data[8..12].try_into().unwrap());
+            drop(data);
+            hash_readback.unmap();
+            return CycleInfo { detected, period };
         }
     }
 
@@ -170,7 +199,7 @@ pub fn tick(
         round += 1;
     }
 
-    // Finalize tick by copying Curr→Prev and writing metrics.
+    // Finalize tick by copying Curr→Prev, hashing internals, and writing metrics.
     let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
         label: Some("Kfinal_finalize"),
     });
@@ -183,6 +212,18 @@ pub fn tick(
         pass.set_bind_group(0, bind_group, &[]);
         pass.dispatch_workgroups(1, 1, 1);
     }
-
+    encoder.copy_buffer_to_buffer(hash_state, 0, &hash_readback, 0, HASH_STATE_SIZE);
     queue.submit(Some(encoder.finish()));
+
+    let slice = hash_readback.slice(..);
+    let (sender, receiver) = mpsc::channel();
+    slice.map_async(MapMode::Read, move |v| sender.send(v).unwrap());
+    device.poll(Maintain::Wait);
+    receiver.recv().unwrap().unwrap();
+    let data = slice.get_mapped_range();
+    let detected = u32::from_le_bytes(data[4..8].try_into().unwrap()) != 0;
+    let period = u32::from_le_bytes(data[8..12].try_into().unwrap());
+    drop(data);
+    hash_readback.unmap();
+    CycleInfo { detected, period }
 }

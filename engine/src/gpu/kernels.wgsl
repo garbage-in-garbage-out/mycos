@@ -97,6 +97,28 @@ fn bit_mask(bit: u32) -> u32 {
     return 1u << (bit % WORD_BITS);
 }
 
+fn rotl32(x: u32, r: u32) -> u32 {
+    return (x << r) | (x >> (32u - r));
+}
+
+fn murmur_mix(h: u32, k: u32) -> u32 {
+    var kk = k * 0xcc9e2d51u;
+    kk = rotl32(kk, 15u);
+    kk = kk * 0x1b873593u;
+    var hh = h ^ kk;
+    hh = rotl32(hh, 13u);
+    return hh * 5u + 0xe6546b64u;
+}
+
+fn murmur_fmix(mut h: u32) -> u32 {
+    h = h ^ (h >> 16u);
+    h = h * 0x85ebca6bu;
+    h = h ^ (h >> 13u);
+    h = h * 0xc2b2ae35u;
+    h = h ^ (h >> 16u);
+    return h;
+}
+
 // ---------------------------------------------------------------
 // K1_detect_edges: Compute bit transitions and build initial frontiers.
 // ---------------------------------------------------------------
@@ -420,26 +442,31 @@ fn k5_next_frontier(@builtin(global_invocation_id) id: vec3<u32>) {
 }
 
 // ---------------------------------------------------------------
-// Kc_cycle_hash: Hash current internals and detect repeats using ring buffer.
+// Kfinal_finalize: Commit prev = curr and write per-tick metrics.
 // ---------------------------------------------------------------
 @compute @workgroup_size(64)
-fn kc_cycle_hash(@builtin(global_invocation_id) id: vec3<u32>) {
+fn kfinal_finalize(@builtin(global_invocation_id) id: vec3<u32>) {
     if (id.x != 0u || id.y != 0u || id.z != 0u) {
         return;
     }
 
-    var h0: u32 = 0x811c9dc5u;
-    var h1: u32 = 0x811c9dc5u;
-    var h2: u32 = 0x811c9dc5u;
-    var h3: u32 = 0x811c9dc5u;
+    var h0: u32 = 0u;
+    var h1: u32 = 0u;
+    var h2: u32 = 0u;
+    var h3: u32 = 0u;
     let words = (counts.internal_bits + WORD_BITS - 1u) / WORD_BITS;
     for (var i = 0u; i < words; i = i + 1u) {
         let w = curr_internals.data[i];
-        h0 = (h0 ^ w) * 0x01000193u;
-        h1 = (h1 ^ (w >> 1u)) * 0x01000193u;
-        h2 = (h2 ^ (w >> 2u)) * 0x01000193u;
-        h3 = (h3 ^ (w >> 3u)) * 0x01000193u;
+        h0 = murmur_mix(h0, w);
+        h1 = murmur_mix(h1, rotl32(w, 8u));
+        h2 = murmur_mix(h2, rotl32(w, 16u));
+        h3 = murmur_mix(h3, rotl32(w, 24u));
     }
+    let len = words * 4u;
+    h0 = murmur_fmix(h0 ^ len);
+    h1 = murmur_fmix(h1 ^ len);
+    h2 = murmur_fmix(h2 ^ len);
+    h3 = murmur_fmix(h3 ^ len);
 
     var repeat: u32 = 0u;
     var period: u32 = 0u;
@@ -451,7 +478,6 @@ fn kc_cycle_hash(@builtin(global_invocation_id) id: vec3<u32>) {
             period = (window + hash_state.pos - i) % window;
         }
     }
-
     let pos = hash_state.pos;
     let base = pos * 4u;
     hash_ring.data[base] = h0;
@@ -461,16 +487,6 @@ fn kc_cycle_hash(@builtin(global_invocation_id) id: vec3<u32>) {
     hash_state.pos = (pos + 1u) % window;
     hash_state.detected = repeat;
     hash_state.period = period;
-}
-
-// ---------------------------------------------------------------
-// Kfinal_finalize: Commit prev = curr and write per-tick metrics.
-// ---------------------------------------------------------------
-@compute @workgroup_size(64)
-fn kfinal_finalize(@builtin(global_invocation_id) id: vec3<u32>) {
-    if (id.x != 0u || id.y != 0u || id.z != 0u) {
-        return;
-    }
 
     let input_words = (counts.input_bits + WORD_BITS - 1u) / WORD_BITS;
     for (var i = 0u; i < input_words; i = i + 1u) {
