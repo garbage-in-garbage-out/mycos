@@ -17,6 +17,7 @@ web-sys = { version = "0.3", features = ["HtmlCanvasElement"] }
 bitvec = { version = "1.0", features = ["serde"] }
 rand = "0.8"
 getrandom = { version = "0.2", features = ["js"] }
+serde_json = "1.0"
 
 [features]
 default = []
@@ -24,4 +25,3 @@ webgpu = ["wgpu"]
 
 [dev-dependencies]
 insta = { version = "1.34.0", features = ["json"] }
-serde_json = "1.0"
