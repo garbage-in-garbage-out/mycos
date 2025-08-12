@@ -56,18 +56,44 @@ impl CycleDetector {
     }
 }
 
-/// Simple 128-bit FNV-1a style hash matching the GPU implementation.
+/// Simple 128-bit Murmur3-style hash matching the GPU implementation.
 fn hash_state(words: &[u32]) -> u128 {
-    let mut h0: u32 = 0x811c9dc5;
-    let mut h1: u32 = 0x811c9dc5;
-    let mut h2: u32 = 0x811c9dc5;
-    let mut h3: u32 = 0x811c9dc5;
-    for &w in words {
-        h0 = (h0 ^ w).wrapping_mul(0x0100_0193);
-        h1 = (h1 ^ (w >> 1)).wrapping_mul(0x0100_0193);
-        h2 = (h2 ^ (w >> 2)).wrapping_mul(0x0100_0193);
-        h3 = (h3 ^ (w >> 3)).wrapping_mul(0x0100_0193);
+    fn rotl32(x: u32, r: u32) -> u32 {
+        x.rotate_left(r)
     }
+    fn mix(mut h: u32, mut k: u32) -> u32 {
+        k = k.wrapping_mul(0xcc9e_2d51);
+        k = rotl32(k, 15);
+        k = k.wrapping_mul(0x1b87_3593);
+        h ^= k;
+        h = rotl32(h, 13);
+        h = h.wrapping_mul(5).wrapping_add(0xe654_6b64);
+        h
+    }
+    fn fmix(mut h: u32) -> u32 {
+        h ^= h >> 16;
+        h = h.wrapping_mul(0x85eb_ca6b);
+        h ^= h >> 13;
+        h = h.wrapping_mul(0xc2b2_ae35);
+        h ^= h >> 16;
+        h
+    }
+
+    let mut h0: u32 = 0;
+    let mut h1: u32 = 0;
+    let mut h2: u32 = 0;
+    let mut h3: u32 = 0;
+    for &w in words {
+        h0 = mix(h0, w);
+        h1 = mix(h1, w.rotate_left(8));
+        h2 = mix(h2, w.rotate_left(16));
+        h3 = mix(h3, w.rotate_left(24));
+    }
+    let len = (words.len() * 4) as u32;
+    h0 = fmix(h0 ^ len);
+    h1 = fmix(h1 ^ len);
+    h2 = fmix(h2 ^ len);
+    h3 = fmix(h3 ^ len);
     ((h0 as u128) << 96) | ((h1 as u128) << 64) | ((h2 as u128) << 32) | (h3 as u128)
 }
 
