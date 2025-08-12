@@ -1,5 +1,6 @@
 pub mod chunk;
 pub mod cpu_ref;
+pub mod crossover;
 pub mod csr;
 pub mod embed;
 pub mod genome;
@@ -16,6 +17,7 @@ pub mod gpu;
 pub use chunk::{
     parse_chunk, validate_chunk, Action, Connection, Error, MycosChunk, Section, Trigger,
 };
+pub use crossover::crossover;
 pub use csr::{build_csr, Effect, CSR};
 pub use embed::{execute_gated_alias, execute_gated_copy, parse_embeds, Embed, EmbedError, IoMode};
 pub use genome::{ChunkGene, ConnGene, Genome, GenomeMeta, LinkGene, ValidationError};
