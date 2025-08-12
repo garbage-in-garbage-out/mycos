@@ -330,8 +330,7 @@ fn encode_tlv(out: &mut Vec<u8>, t: u16, value: &[u8]) {
 pub fn validate_chunk(chunk: &MycosChunk) -> Result<(), Error> {
     for conn in &chunk.connections {
         match (conn.from_section, conn.to_section) {
-            (Section::Input, Section::Internal)
-            | (Section::Internal, Section::Internal)
+            (Section::Input | Section::Internal, Section::Internal)
             | (Section::Internal, Section::Output) => {}
             _ => {
                 return Err(Error::InvalidConnectionEdge {

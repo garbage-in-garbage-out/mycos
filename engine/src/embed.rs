@@ -137,7 +137,7 @@ pub fn execute_gated_copy(parent: &mut MycosChunk, child: &mut MycosChunk, embed
     if gate_now {
         let (ci, co, cn) = cpu_ref::execute(child);
         child.input_bits = ci;
-        child.output_bits = co.clone();
+        child.output_bits.clone_from(&co);
         child.internal_bits = cn;
         for (c_bit, p_bit) in &embed.map_out {
             let val = get_bit(&co, *c_bit);

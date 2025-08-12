@@ -60,7 +60,7 @@ pub fn scc_ids_and_topo_levels(chunk: &MycosChunk) -> (Vec<usize>, Vec<usize>) {
     }
 
     while let Some(u) = queue.pop_front() {
-        for &v in dag[u].iter() {
+        for &v in &dag[u] {
             if levels[v] < levels[u] + 1 {
                 levels[v] = levels[u] + 1;
             }

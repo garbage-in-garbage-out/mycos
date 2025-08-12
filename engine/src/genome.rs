@@ -264,7 +264,7 @@ impl ConnGene {
             return Err(ValidationError::InvalidAction(self.action));
         }
         match (self.from_section, self.to_section) {
-            (0, 1) | (1, 1) | (1, 2) => Ok(()),
+            (0, 1) | (1, 1 | 2) => Ok(()),
             _ => Err(ValidationError::InvalidConnEdge {
                 from_section: self.from_section,
                 to_section: self.to_section,
