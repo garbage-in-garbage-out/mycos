@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mycos Dev UI</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 1rem;
+        line-height: 1.4;
+      }
+      section {
+        margin-bottom: 1rem;
+      }
+      #inputs label,
+      #outputs span {
+        display: inline-block;
+        width: 1.5rem;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-DAh2tRyx.js"></script>
+  </head>
+  <body>
+    <h1>Mycos Dev UI</h1>
+
+    <section>
+      <label for="fixture-select">Fixture:</label>
+      <select id="fixture-select">
+        <option value="tiny_toggle">tiny_toggle</option>
+        <option value="noop">noop</option>
+        <option value="oscillator_2cycle">oscillator_2cycle</option>
+      </select>
+      <button id="load-btn">Load</button>
+    </section>
+
+    <section>
+      <h2>Inputs</h2>
+      <div id="inputs"></div>
+    </section>
+
+    <section>
+      <h2>Controls</h2>
+      <button id="tick-btn">Tick</button>
+      <input id="n-ticks" type="number" min="1" value="1" />
+      <button id="run-btn">Run N</button>
+      <label for="policy-select">Policy:</label>
+      <select id="policy-select">
+        <option value="freeze">freeze</option>
+        <option value="clamp">clamp</option>
+        <option value="parity">parity</option>
+      </select>
+    </section>
+
+    <section>
+      <h2>Outputs</h2>
+      <div id="outputs"></div>
+    </section>
+
+    <section>
+      <h2>Metrics</h2>
+      <div>Rounds: <span id="metric-rounds">0</span></div>
+      <div>Effects: <span id="metric-effects">0</span></div>
+    </section>
+
+  </body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "name": "fanout_1_to_1024",
+  "description": "Single input fans out to 1024 internal bits",
+  "initial_state": {
+    "inputs": [0],
+    "outputs": [],
+    "internals": "all_zeros_1024_bits"
+  },
+  "test_cases": [
+    {
+      "description": "Input bit 0 goes high, should enable all 1024 internal bits",
+      "input_changes": {"inputs": [1]},
+      "expected_ticks": [
+        {
+          "tick": 1,
+          "state": {
+            "inputs": [1],
+            "outputs": [],
+            "internals": "all_ones_1024_bits"
+          },
+          "changes": {
+            "internals": "all_1024_bits_set"
+          }
+        }
+      ]
+    },
+    {
+      "description": "Input bit 0 goes low, internal bits remain high",
+      "input_changes": {"inputs": [0]},
+      "expected_ticks": [
+        {
+          "tick": 1,
+          "state": {
+            "inputs": [0],
+            "outputs": [],
+            "internals": "all_ones_1024_bits"
+          },
+          "changes": {}
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "tiny_toggle",
+  "description": "Simple Input→Internal→Output chain",
+  "initial_state": {
+    "inputs": [0],
+    "outputs": [0],
+    "internals": [0]
+  },
+  "test_cases": [
+    {
+      "description": "Input bit 0 goes high",
+      "input_changes": {"inputs": [1]},
+      "expected_ticks": [
+        {
+          "tick": 1,
+          "state": {
+            "inputs": [1],
+            "outputs": [0],
+            "internals": [1]
+          },
+          "changes": {
+            "internals": [1]
+          }
+        },
+        {
+          "tick": 2,
+          "state": {
+            "inputs": [1],
+            "outputs": [1],
+            "internals": [1]
+          },
+          "changes": {
+            "outputs": [1]
+          }
+        }
+      ]
+    },
+    {
+      "description": "Input bit 0 goes low",
+      "input_changes": {"inputs": [0]},
+      "expected_ticks": [
+        {
+          "tick": 1,
+          "state": {
+            "inputs": [0],
+            "outputs": [1],
+            "internals": [1]
+          },
+          "changes": {}
+        }
+      ]
+    }
+  ]
+}
