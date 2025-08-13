@@ -88,6 +88,42 @@ impl Genome {
     pub fn sort(&mut self) {
         Genome::sort_internal(&mut self.chunks, &mut self.links);
     }
+
+    /// Resize the number of input bits for a chunk.
+    ///
+    /// Connections and links targeting removed inputs are dropped. Existing
+    /// indices are preserved so connection semantics remain unchanged when the
+    /// count grows.
+    pub fn resize_chunk_inputs(&mut self, chunk_idx: usize, new_ni: u32) {
+        if let Some(chunk) = self.chunks.get_mut(chunk_idx) {
+            chunk.resize_inputs(new_ni);
+            self.links
+                .retain(|l| !(l.to_chunk == chunk_idx as u32 && l.to_in_idx >= new_ni));
+            self.sort();
+        }
+    }
+
+    /// Resize the number of output bits for a chunk.
+    ///
+    /// Connections and links originating from removed outputs are dropped.
+    pub fn resize_chunk_outputs(&mut self, chunk_idx: usize, new_no: u32) {
+        if let Some(chunk) = self.chunks.get_mut(chunk_idx) {
+            chunk.resize_outputs(new_no);
+            self.links
+                .retain(|l| !(l.from_chunk == chunk_idx as u32 && l.from_out_idx >= new_no));
+            self.sort();
+        }
+    }
+
+    /// Resize the number of internal bits for a chunk.
+    ///
+    /// Connections referencing removed internals are dropped.
+    pub fn resize_chunk_internals(&mut self, chunk_idx: usize, new_nn: u32) {
+        if let Some(chunk) = self.chunks.get_mut(chunk_idx) {
+            chunk.resize_internals(new_nn);
+            self.sort();
+        }
+    }
 }
 
 /// Metadata associated with a genome.
@@ -218,6 +254,41 @@ impl ChunkGene {
                 b.order_tag,
             ))
         });
+    }
+
+    /// Resize the inputs bitset, removing connections from discarded inputs.
+    pub fn resize_inputs(&mut self, new_ni: u32) {
+        self.ni = new_ni;
+        self.inputs_init.resize(new_ni as usize, false);
+        self.conns
+            .retain(|c| !(c.from_section == 0 && c.from_index >= new_ni));
+        self.sort();
+    }
+
+    /// Resize the outputs bitset, removing connections to discarded outputs.
+    pub fn resize_outputs(&mut self, new_no: u32) {
+        self.no = new_no;
+        self.outputs_init.resize(new_no as usize, false);
+        self.conns
+            .retain(|c| !(c.to_section == 2 && c.to_index >= new_no));
+        self.sort();
+    }
+
+    /// Resize the internal bitset, removing connections touching discarded
+    /// internals.
+    pub fn resize_internals(&mut self, new_nn: u32) {
+        self.nn = new_nn;
+        self.internals_init.resize(new_nn as usize, false);
+        self.conns.retain(|c| {
+            if c.from_section == 1 && c.from_index >= new_nn {
+                return false;
+            }
+            if c.to_section == 1 && c.to_index >= new_nn {
+                return false;
+            }
+            true
+        });
+        self.sort();
     }
 }
 
@@ -485,5 +556,104 @@ mod tests {
         // links sorted
         assert_eq!(genome.links[0].order_tag, 1);
         assert!(genome.validate().is_ok());
+    }
+
+    #[test]
+    fn resize_inputs_drops_invalid_refs() {
+        let chunk0 = ChunkGene::new(
+            0,
+            1,
+            1,
+            BitVec::new(),
+            bitvec![u8, Lsb0; 0],
+            bitvec![u8, Lsb0; 0],
+            vec![ConnGene::new(1, 2, 0, 0, 0, 0, 0).unwrap()],
+        );
+        let chunk1 = ChunkGene::new(
+            2,
+            0,
+            1,
+            bitvec![u8, Lsb0; 0, 0],
+            BitVec::new(),
+            bitvec![u8, Lsb0; 0],
+            vec![ConnGene::new(0, 1, 0, 0, 1, 0, 0).unwrap()],
+        );
+        let links = vec![
+            LinkGene::new(0, 0, 0, 0, 1, 0, 0).unwrap(),
+            LinkGene::new(0, 0, 0, 0, 1, 1, 1).unwrap(),
+        ];
+        let mut genome =
+            Genome::new(vec![chunk0, chunk1], links, GenomeMeta::new(0, "t".into())).unwrap();
+        genome.resize_chunk_inputs(1, 1);
+        let chunk = &genome.chunks[1];
+        assert_eq!(chunk.ni, 1);
+        assert_eq!(chunk.inputs_init.len(), 1);
+        assert!(chunk.conns.is_empty());
+        assert_eq!(genome.links.len(), 1);
+        assert_eq!(genome.links[0].to_in_idx, 0);
+    }
+
+    #[test]
+    fn resize_outputs_drops_invalid_refs() {
+        let chunk0 = ChunkGene::new(
+            1,
+            2,
+            1,
+            bitvec![u8, Lsb0; 0],
+            bitvec![u8, Lsb0; 0, 0],
+            bitvec![u8, Lsb0; 0],
+            vec![
+                ConnGene::new(1, 2, 0, 0, 0, 1, 0).unwrap(),
+                ConnGene::new(1, 2, 0, 0, 0, 0, 1).unwrap(),
+            ],
+        );
+        let chunk1 = ChunkGene::new(
+            1,
+            0,
+            0,
+            bitvec![u8, Lsb0; 0],
+            BitVec::new(),
+            BitVec::new(),
+            vec![],
+        );
+        let links = vec![
+            LinkGene::new(0, 0, 0, 0, 1, 0, 0).unwrap(),
+            LinkGene::new(0, 1, 0, 0, 1, 0, 1).unwrap(),
+        ];
+        let mut genome =
+            Genome::new(vec![chunk0, chunk1], links, GenomeMeta::new(0, "t".into())).unwrap();
+        genome.resize_chunk_outputs(0, 1);
+        let chunk = &genome.chunks[0];
+        assert_eq!(chunk.no, 1);
+        assert_eq!(chunk.outputs_init.len(), 1);
+        assert_eq!(chunk.conns.len(), 1);
+        assert_eq!(chunk.conns[0].to_index, 0);
+        assert_eq!(genome.links.len(), 1);
+        assert_eq!(genome.links[0].from_out_idx, 0);
+    }
+
+    #[test]
+    fn resize_internals_drops_invalid_refs() {
+        let chunk = ChunkGene::new(
+            0,
+            1,
+            2,
+            BitVec::new(),
+            bitvec![u8, Lsb0; 0],
+            bitvec![u8, Lsb0; 0, 0],
+            vec![
+                ConnGene::new(1, 1, 0, 0, 1, 0, 0).unwrap(),
+                ConnGene::new(1, 2, 0, 0, 1, 0, 1).unwrap(),
+                ConnGene::new(1, 2, 0, 0, 0, 0, 2).unwrap(),
+            ],
+        );
+        let mut genome = Genome::new(vec![chunk], vec![], GenomeMeta::new(0, "t".into())).unwrap();
+        genome.resize_chunk_internals(0, 1);
+        let chunk = &genome.chunks[0];
+        assert_eq!(chunk.nn, 1);
+        assert_eq!(chunk.internals_init.len(), 1);
+        assert_eq!(chunk.conns.len(), 1);
+        assert_eq!(chunk.conns[0].from_index, 0);
+        assert_eq!(chunk.conns[0].to_index, 0);
     }
 }
