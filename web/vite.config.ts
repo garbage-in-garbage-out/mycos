@@ -58,4 +58,19 @@ export default defineConfig(({ command }) => ({
       },
     },
   ],
+  test: {
+    browser: {
+      enabled: true,
+      provider: 'playwright',
+      name: 'chromium',
+      headless: true,
+      launchOptions: {
+        args: [
+          '--enable-unsafe-webgpu',
+          '--use-gl=swiftshader',
+          '--no-sandbox',
+        ],
+      },
+    },
+  },
 }));
